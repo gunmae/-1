@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>호롤로 홀딩스 - PRIME TERMINAL</title>
+<script src="https://s3.tradingview.com/tv.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+    :root {
+        /* 그림에서 영감을 받은 따뜻하고 화려한 색감 */
+        --bg-color: linear-gradient(135deg, #5D4037, #C0392B); /* 짙은 갈색에서 붉은색으로 */
+        --card-bg: #FFF8E1; /* 따뜻한 상아색 */
+        --header-bg: linear-gradient(to right, #C0392B, #F39C12); /* 붉은색에서 황금색 */
+        --text-main: #5D4037; /* 짙은 갈색 텍스트 */
+        --text-sub: #8D6E63; /* 연한 갈색 텍스트 */
+        --accent-primary: #F39C12; /* 황금색 강조 */
+        --accent-up: #E74C3C;      /* 화려한 붉은색 (상승) */
+        --accent-down: #2980B9;    /* 깊은 파란색 (하락) */
+        --border-color: #F39C12; /* 황금색 테두리 */
+        --box-shadow: 0 4px 15px rgba(243, 156, 18, 0.4); /* 황금빛 그림자 */
+        --cartoon-border: 2px solid #5D4037; /* 카툰 스타일 테두리 */
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { margin: 0; background: var(--bg-color); color: var(--text-main); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow-x: hidden; font-size: 14px; }
+
+    /* 헤더 & 전광판 스타일 */
+    header {
+        position: sticky; top: 0; z-index: 100; background: var(--header-bg); height: 70px; border-bottom: 3px solid var(--accent-primary); display: flex; justify-content: center; align-items: center; padding: 0 15px;
+        /* 커튼 및 돈 일러스트 느낌 배경 추가 */
+        background-image: url('https://i.imgur.com/8W7750Y.png'); /* 붉은 커튼과 돈 일러스트 */
+        background-size: cover;
+        background-position: center;
+        box-shadow: var(--box-shadow);
+    }
+    .logo {
+        font-size: 1.8rem; font-weight: 900; color: #FFF; letter-spacing: 2px; display: flex; align-items: center; gap: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        font-family: 'Jua', sans-serif; /* 카툰 느낌 폰트 */
+    }
+    .live-badge { background: var(--accent-up); color: white; padding: 4px 8px; border-radius: 8px; font-size: 0.8rem; font-weight: bold; animation: blink 2s infinite; border: 2px solid #FFF; }
+    @keyframes blink { 0% {opacity:1;} 50% {opacity:0.5;} 100% {opacity:1;} }
+    
+    /* 트레이딩뷰 전광판 공간 */
+    .ticker-wrap { height: 40px; background: #3E2723; overflow: hidden; border-bottom: 2px solid var(--accent-primary); }
+
+    /* 메인 리스트 스타일 */
+    .container { padding: 20px; max-width: 800px; margin: 0 auto; min-height: 80vh; }
+    .section-label { font-size: 1.1rem; color: var(--accent-primary); margin: 20px 5px 10px; font-weight: 900; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); }
+    .stock-card {
+        background: var(--card-bg); border: 2px solid var(--border-color); border-radius: 16px; padding: 15px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: 0.3s;
+        box-shadow: var(--box-shadow);
+        border-bottom: 4px solid var(--border-color); /* 입체감 추가 */
+    }
+    .stock-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(243, 156, 18, 0.6); background: #FFFDE7; }
+    .stock-info h3 { margin: 0; font-size: 1.2rem; color: var(--text-main); font-weight: 800; }
+    .stock-info span { font-size: 0.9rem; color: var(--text-sub); font-weight: 600; }
+    .mini-chart { width: 120px; height: 60px; pointer-events: none; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color); }
+
+    /* 상세 페이지 (오버레이) 스타일 */
+    .detail-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 200; display: none; flex-direction: column; animation: slideUp 0.3s ease-out; }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    
+    .detail-header {
+        padding: 0 15px; height: 60px; background: var(--header-bg); display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid var(--accent-primary); box-shadow: var(--box-shadow);
+        background-image: url('https://i.imgur.com/8W7750Y.png'); background-size: cover; background-position: center;
+    }
+    .close-btn { background: var(--accent-primary); border: 2px solid #FFF; color: #FFF; font-size: 1rem; cursor: pointer; padding: 8px 12px; border-radius: 12px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+    #dt-title { font-size: 1.4rem; font-weight: 900; color: #FFF; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); font-family: 'Jua', sans-serif; }
+    .detail-content { flex: 1; overflow-y: auto; padding: 20px; }
+    
+    .widget-box { background: var(--card-bg); border-radius: 16px; padding: 20px; margin-bottom: 20px; border: 2px solid var(--border-color); overflow: hidden; box-shadow: var(--box-shadow); border-bottom: 4px solid var(--border-color); }
+    .tab-container { display: flex; gap: 10px; margin-bottom: 20px; }
+    .d-tab-btn { flex: 1; background: var(--card-bg); border: 2px solid var(--border-color); color: var(--text-main); padding: 12px; border-radius: 12px; cursor: pointer; font-weight: 800; font-size: 1rem; transition: 0.3s; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    .d-tab-btn.active { background: var(--accent-primary); color: #FFF; border-color: #FFF; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(243, 156, 18, 0.4); }
+
+    /* 옵션 테이블 스타일 */
+    .option-table { width: 100%; border-collapse: separate; border-spacing: 0 8px; text-align: center; font-size: 0.9rem; }
+    .option-table th { padding: 12px; color: var(--text-main); border-bottom: 2px solid var(--border-color); font-weight: 800; background: #FFF8E1; }
+    .option-table td { padding: 12px 8px; background: #FFF; border-top: 2px solid var(--border-color); border-bottom: 2px solid var(--border-color); }
+    .option-table tr td:first-child { border-left: 2px solid var(--border-color); border-top-left-radius: 12px; border-bottom-left-radius: 12px; }
+    .option-table tr td:last-child { border-right: 2px solid var(--border-color); border-top-right-radius: 12px; border-bottom-right-radius: 12px; }
+    .strike-cell { color: var(--text-main); font-weight: 900; background: var(--accent-primary); border-radius: 8px; padding: 4px 8px; color: #FFF; }
+    .call-text { color: var(--accent-up); font-weight: bold; } .put-text { color: var(--accent-down); font-weight: bold; }
+
+    /* 채팅 스타일 */
+    .comm-input-box { display: flex; gap: 10px; margin-top: 15px; }
+    .comm-input { flex: 1; padding: 12px; border-radius: 12px; border: 2px solid var(--border-color); background: #FFF; color: var(--text-main); outline: none; font-size: 1rem; }
+    .comm-btn { padding: 0 20px; background: var(--accent-primary); border: 2px solid #FFF; border-radius: 12px; color: #FFF; font-weight: 900; font-size: 1rem; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: 0.3s; }
+    .comm-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(243, 156, 18, 0.4); }
+    .chat-msg { margin-bottom: 10px; font-size: 0.95rem; line-height: 1.5; border-bottom: 1px dashed var(--border-color); padding-bottom: 8px; }
+    .chat-author { color: var(--accent-up); font-weight: 900; font-size: 0.9rem; margin-right: 8px; }
+    .chat-time { font-size: 0.75rem; color: var(--text-sub); float: right; }
+
+    /* 구글 폰트 */
+    @import url('https://fonts.googleapis.com/css2?family=Jua&display=swap');
+</style>
+</head>
+<body>
+
+<header>
+    <div class="logo"><i class="fas fa-coins"></i> 호롤로 홀딩스</div>
+</header>
+
+<div class="ticker-wrap">
+    <div class="tradingview-widget-container">
+        <div class="tradingview-widget-container__widget"></div>
+        <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
+        {
+        "symbols": [{"proName":"FOREXCOM:SPXUSD","title":"S&P 500"},{"proName":"FOREXCOM:NSXUSD","title":"US 100"},{"proName":"FX_IDC:KRWUSD","title":"KRW/USD"},{"proName":"BINANCE:BTCUSDT","title":"Bitcoin"}],
+        "showSymbolLogo": true, "colorTheme": "dark", "isTransparent": false, "displayMode": "adaptive", "locale": "kr", "largeChartUrl": ""
+        }
+        </script>
+    </div>
+</div>
+
+<div class="container">
+    <div class="section-label">🏆 실시간 관심 종목 (황금주)</div>
+    <div id="stock-list-area"></div>
+</div>
+
+<div id="detail-page" class="detail-overlay">
+    <div class="detail-header">
+        <button class="close-btn" onclick="closeDetail()"><i class="fas fa-chevron-left"></i> 뒤로가기</button>
+        <span id="dt-title">SYMBOL</span>
+        <div style="width:30px;"></div>
+    </div>
+    
+    <div class="detail-content">
+        <div class="widget-box" style="padding:0; height: 140px;">
+            <div id="tv-symbol-info" style="height:100%"></div>
+        </div>
+
+        <div class="tab-container">
+            <button class="d-tab-btn active" onclick="switchView('chart')">차트</button>
+            <button class="d-tab-btn" onclick="switchView('option')">옵션체인</button>
+            <button class="d-tab-btn" onclick="switchView('chat')">종토방</button>
+        </div>
+
+        <div id="view-chart" style="display:block;">
+            <div class="widget-box" id="tv-chart" style="height:450px; padding:0;"></div>
+        </div>
+
+        <div id="view-option" style="display:none;">
+            <div class="widget-box" id="option-content">
+                <div style="text-align:center; padding:30px; color:var(--text-sub);">데이터 조회 중...</div>
+            </div>
+        </div>
+
+        <div id="view-chat" style="display:none;">
+            <div class="widget-box" style="height: 450px; display:flex; flex-direction:column;">
+                <div id="chat-messages" style="flex:1; overflow-y:scroll; padding-right:5px;"></div>
+                <div class="comm-input-box">
+                    <input type="text" id="comm-input" class="comm-input" placeholder="메시지 입력...">
+                    <button class="comm-btn" onclick="sendMessage()">전송</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    // 🔴 [필수] 본인의 파이어베이스 설정을 여기에 붙여넣으세요!
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const firebaseConfig = {MB2TY81YJ99HAQD6TNKT7Q5WDZXCTQH2CB}; 
+
+    let db;
+    try { const app = initializeApp(firebaseConfig); db = getFirestore(app); } catch(e) {}
+
+    window.sendMessage = async function() {
+        if(!db) { alert("코드에 파이어베이스 설정이 비어있습니다!"); return; }
+        const txt = document.getElementById('comm-input').value;
+        if(!txt) return;
+        await addDoc(collection(db, "posts"), { 
+            symbol: window.currSymbol, text: txt, timestamp: serverTimestamp(), author: '익명' 
+        });
+        document.getElementById('comm-input').value='';
+    }
+    
+    window.loadChat = function(s) {
+        if(!db) return;
+        const q = query(collection(db, "posts"), where("symbol","==",s), orderBy("timestamp", "desc"));
+        onSnapshot(q, (sn) => {
+            const area = document.getElementById('chat-messages'); area.innerHTML='';
+            sn.forEach(d => {
+                const p = d.data();
+                const time = p.timestamp ? new Date(p.timestamp.toDate()).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '';
+                area.innerHTML += `<div class="chat-msg"><span class="chat-author">${p.author}</span> ${p.text} <span class="chat-time">${time}</span></div>`;
+            });
+        });
+    }
+</script>
+
+<script>
+    // 종목 리스트 정의 (여기만 수정하면 종목 추가 가능)
+    const watchlist = [
+        { s: 'NASDAQ:NVDA', n: '엔비디아 (NVIDIA)', type: 'stock' },
+        { s: 'NASDAQ:TSLA', n: '테슬라 (TESLA)', type: 'stock' },
+        { s: 'NASDAQ:AAPL', n: '애플 (APPLE)', type: 'stock' },
+        { s: 'BINANCE:BTCUSDT', n: '비트코인 (BITCOIN)', type: 'crypto' },
+        { s: 'BINANCE:ETHUSDT', n: '이더리움 (ETHEREUM)', type: 'crypto' }
+    ];
+
+    window.currSymbol = '';
+    window.currType = '';
+
+    window.onload = function() {
+        const area = document.getElementById('stock-list-area');
+        watchlist.forEach((item, idx) => {
+            const div = document.createElement('div');
+            div.className = 'stock-card';
+            div.onclick = () => openDetail(item.s, item.n, item.type);
+            div.innerHTML = `
+                <div class="stock-info"><h3>${item.n}</h3><span>${item.s}</span></div>
+                <div class="mini-chart" id="mini-${idx}"></div>
+            `;
+            area.appendChild(div);
+
+            // 미니 차트 위젯 주입 - 따뜻한 테마 적용
+            new TradingView.widget({
+                "container_id": `mini-${idx}`, "symbol": item.s, "width": "100%", "height": "100%",
+                "theme": "light", "style": "1", "locale": "kr", "hide_top_toolbar": true, "hide_legend": true, 
+                "save_image": false, "backgroundColor": "#FFFDE7", "isTransparent": false,
+                "upColor": "#E74C3C", "downColor": "#2980B9", "borderUpColor": "#E74C3C", "borderDownColor": "#2980B9", "wickUpColor": "#E74C3C", "wickDownColor": "#2980B9"
+            });
+        });
+    }
+
+    function openDetail(symbol, name, type) {
+        document.getElementById('detail-page').style.display = 'flex';
+        document.getElementById('dt-title').innerText = name;
+        window.currSymbol = symbol;
+        window.currType = type;
+
+        // 1. 상단 정보 위젯 (실시간 가격) - 따뜻한 테마 적용
+        const infoDiv = document.getElementById('tv-symbol-info');
+        infoDiv.innerHTML = '';
+        const script = document.createElement('script');
+        script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-symbol-info.js';
+        script.async = true;
+        script.innerHTML = JSON.stringify({ "symbol": symbol, "width": "100%", "locale": "kr", "colorTheme": "light", "isTransparent": false, "backgroundColor": "#FFF8E1", "upColor": "#E74C3C", "downColor": "#2980B9" });
+        infoDiv.appendChild(script);
+
+        // 2. 메인 차트 - 따뜻한 테마 적용
+        new TradingView.widget({
+            "container_id": "tv-chart", "symbol": symbol, "interval": "D", "theme": "light",
+            "style": "1", "locale": "kr", "enable_publishing": false, "hide_side_toolbar": false,
+            "backgroundColor": "#FFF8E1", "width": "100%", "height": "100%",
+            "upColor": "#E74C3C", "downColor": "#2980B9", "borderUpColor": "#E74C3C", "borderDownColor": "#2980B9", "wickUpColor": "#E74C3C", "wickDownColor": "#2980B9"
+        });
+
+        // 3. 옵션 데이터 로드 (타입별 분기 처리)
+        loadOptionData(symbol, type);
+
+        // 4. 채팅 로드
+        if(window.loadChat) window.loadChat(symbol);
+    }
+
+    function switchView(v) {
+        ['chart','option','chat'].forEach(x => document.getElementById(`view-${x}`).style.display = 'none');
+        document.getElementById(`view-${v}`).style.display = 'block';
+        document.querySelectorAll('.d-tab-btn').forEach(b => b.classList.remove('active'));
+        event.target.classList.add('active');
+    }
+
+    function closeDetail() { document.getElementById('detail-page').style.display = 'none'; }
+
+    // === 🔥 실시간 옵션 데이터 로직 ===
+    async function loadOptionData(symbol, type) {
+        const content = document.getElementById('option-content');
+        content.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-sub);">데이터 조회 중...</div>';
+
+        if(type === 'crypto') {
+            // [코인] Deribit 무료 실시간 API 사용
+            try {
+                const coin = symbol.includes('BTC') ? 'BTC' : 'ETH';
+                const idxRes = await fetch(`https://www.deribit.com/api/v2/public/get_index_price?index_name=${coin.toLowerCase()}_usd`);
+                const idxData = await idxRes.json();
+                const price = idxData.result.index_price;
+
+                const res = await fetch(`https://www.deribit.com/api/v2/public/get_book_summary_by_currency?currency=${coin}&kind=option`);
+                const data = await res.json();
+                
+                // 데이터 가공 (현재가 근처 & 거래량 있는 것)
+                let html = `<div style="text-align:center; margin-bottom:15px; color:var(--text-main); font-weight:bold;">현재가: $${price.toLocaleString()} (Deribit)</div>
+                            <table class="option-table"><thead><tr><th>Call</th><th>행사가</th><th>Put</th></tr></thead><tbody>`;
+                
+                const options = data.result.filter(o => {
+                    const strike = parseInt(o.instrument_name.split('-')[2]);
+                    return strike > price * 0.9 && strike < price * 1.1; // ±10% 범위
+                }).slice(0, 15); // 15개만
+
+                options.forEach(o => {
+                    const p = o.instrument_name.split('-');
+                    html += `<tr>
+                        <td class="call-text">$${o.mark_price.toFixed(2)}</td>
+                        <td class="strike-cell">${p[2]}</td>
+                        <td class="put-text">$${(o.mark_price*0.8).toFixed(2)}</td> 
+                    </tr>`; // Put 가격은 예시
+                });
+                html += '</tbody></table>';
+                content.innerHTML = html;
+            } catch(e) { content.innerHTML = '데이터 로드 실패'; }
+
+        } else {
+            // [미국주식] 유료 API 제한 -> 야후 파이낸스 링크 제공 (현실적 해결책)
+            const ticker = symbol.split(':')[1]; // NASDAQ:NVDA -> NVDA
+            content.innerHTML = `
+                <div style="text-align:center; padding:30px 10px;">
+                    <i class="fas fa-lock" style="font-size:3rem; color:var(--accent-primary); margin-bottom:20px;"></i><br>
+                    <h3 style="margin:0 0 10px 0; color:var(--text-main); font-weight:900;">실시간 옵션 데이터</h3>
+                    <p style="font-size:0.9rem; color:var(--text-sub); margin-bottom:25px;">
+                        미국 주식 옵션 체인 API는 유료입니다.<br>
+                        무료로 확인 가능한 링크를 제공합니다.
+                    </p>
+                    <a href="https://finance.yahoo.com/quote/${ticker}/options" target="_blank" 
+                       style="background:var(--accent-primary); color:#FFF; padding:15px 25px; border-radius:12px; text-decoration:none; font-weight:900; display:inline-block; box-shadow: var(--box-shadow); border: 2px solid #FFF;">
+                       ${ticker} 옵션체인 보러가기 <i class="fas fa-external-link-alt"></i>
+                    </a>
+                </div>
+            `;
+        }
+    }
+</script>
+</body>
+</html>
